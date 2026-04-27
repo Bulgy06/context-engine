@@ -2,6 +2,17 @@ import os
 import ast
 import sys
 
+def get_imports(filepath):
+    with open(filepath,'r') as f:
+        tree=ast.parse(f.read())
+        import_graph={}
+        for node in ast.walk(tree):
+            if isinstance(node,ast.ImportFrom):
+                module=node.module
+                for name in node.names:
+                    import_graph[name.name]=module
+    return import_graph
+
 def get_call_name(func):
     if isinstance(func,ast.Attribute):
         return get_call_name(func.value)+"."+func.attr
@@ -9,6 +20,7 @@ def get_call_name(func):
         return func.id
     else:
         return "unknown"
+    
 def get_functions(filepath):
     with open(filepath, 'r') as f:
         tree=ast.parse(f.read())
@@ -29,9 +41,14 @@ def scan_codebase(path):
             if filename.endswith(".py"):
                 filepath=os.path.join(root, filename)
                 funcs=get_functions(filepath)
-                for i in funcs:
-                    print(i,funcs[i])
-                        
+                imports=get_imports(filepath)
+                print(f"File: {filepath}")
+                print("Imports:")
+                for name,module in imports.items():
+                    print(f"  {name} <-- {module}")
+                print("Call graph:")
+                for func,calls in funcs.items():
+                    print(f"  {func} --> {calls}")
 
 if __name__ == "__main__":
     scan_codebase(sys.argv[1])
